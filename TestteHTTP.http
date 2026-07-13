@@ -1,0 +1,8 @@
+﻿POST https://localhost:5000/api/livros
+Content-Type: application/json
+
+{
+  "titulo": "O Senhor dos Anéis",
+  "autor": "J.R.R. Tolkien",
+  "anoLancamento": 1954
+}
