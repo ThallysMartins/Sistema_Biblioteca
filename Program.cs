@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Sistema_Biblioteca;
 
@@ -49,22 +50,43 @@ app.MapDelete("api/livros/{id}", (int id, BibliotecaDbContext banco) =>
     });
 });
 
-app.MapGet("api/livros/{id}", (int id, BibliotecaDbContext banco) =>
+app.MapGet("api/livros", (string? tipoSelecionado, string? textoDigitado, BibliotecaDbContext dados) =>
 {
-    var livro = banco.Livros.Find(id);
+    var consulta = dados.Livros.AsQueryable();
 
-    if (livro == null)
+    if (string.IsNullOrEmpty(textoDigitado) || string.IsNullOrEmpty(tipoSelecionado))
     {
-        return Results.NotFound(new
-        {
-            mensagem = "Livro não encontrado!"
-        });
+        return Results.Ok(consulta.ToList());
     }
 
-    return Results.Ok(new
+    switch (tipoSelecionado.ToLower())
     {
-        mensagem = $"O livro {livro.Titulo} de {livro.Autor} de {livro.AnoLancamento} foi encontrado."
-    });
+        case "id":
+            if (int.TryParse(textoDigitado, out int idValido))
+            {
+                consulta = consulta.Where(l => l.Id == idValido);
+            }
+            break;
+
+        case "titulo":
+            var palavrasTitulo = textoDigitado.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            consulta = consulta.Where(l => palavrasTitulo.Any(p => l.Titulo.Contains(p, StringComparison.OrdinalIgnoreCase)));
+            break;
+
+        case "autor":
+            var palavrasAutor = textoDigitado.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            consulta = consulta.Where(l => palavrasAutor.Any(p => l.Autor.Contains(p, StringComparison.OrdinalIgnoreCase)));
+            break;
+
+        case "ano":
+            if (int.TryParse(textoDigitado, out int anoValido))
+            {
+                consulta = consulta.Where(l => l.AnoLancamento == anoValido);
+            }
+            break;
+    }
+
+    return Results.Ok(consulta.ToList());
 });
 
 app.Urls.Add("http://localhost:5000"); // 👈 Obriga o C# a usar essa porta
