@@ -5,7 +5,7 @@ using Sistema_Biblioteca;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext <BibliotecaDbContext>(options => options.UseInMemoryDatabase("Biblioteca"));
+builder.Services.AddDbContext <BibliotecaDbContext>(options => options.UseSqlite("Data Source=biblioteca.db"));
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -102,14 +102,23 @@ app.MapPut("api/livros/{id:int}", (int id, Livro livroAtualizado, BibliotecaDbCo
 {
     var livroExistente = dados.Livros.Find(id);
 
-    if (livroExistente == null)
+    livroExistente.Titulo = livroAtualizado.Titulo;
+    livroExistente.Autor = livroAtualizado.Autor;
+    livroExistente.AnoLancamento = livroAtualizado.AnoLancamento;
+
+    if (livroAtualizado == null)
     {
         return Results.NotFound(new { mensagem = "Livro não encontrado para atualização!" });
     }
 
-    livroExistente.Titulo = livroAtualizado.Titulo;
-    livroExistente.Autor = livroAtualizado.Autor;
-    livroExistente.AnoLancamento = livroAtualizado.AnoLancamento;
+    if (string.IsNullOrWhiteSpace(livroAtualizado.Titulo) || string.IsNullOrWhiteSpace(livroAtualizado.Autor) || livroAtualizado.Autor.Trim().ToLower() == "string" || livroAtualizado.Titulo.Trim().ToLower() == "string")
+    {
+        return Results.BadRequest(new { mensagem = "O titulo e o autor são obrigatórios!" });
+    }
+    if (livroAtualizado.AnoLancamento <= 0)
+    {
+        return Results.BadRequest(new { mensagem = "Digite um ano de lançamento válido!" });
+    }
 
     dados.SaveChanges();
 
